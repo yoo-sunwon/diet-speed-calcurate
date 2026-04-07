@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>체중 감량 속도 계산</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: #f0f4f2;
+    font-size: 16px;
+    color: #222;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    background: #2D7A55;
+    color: #fff;
+    text-align: center;
+    padding: 22px 16px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .hospital {
+    color: #FFD6D6;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    margin-bottom: 6px;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.25;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    margin-top: 6px;
+    opacity: 0.85;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 14px 40px;
+  }
+
+  .intro-card {
+    background: #fff;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 14px;
+    border-left: 4px solid #2D7A55;
+    font-size: 14px;
+    color: #444;
+    line-height: 1.6;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2D7A55;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 18px 0 8px 2px;
+  }
+
+  .card {
+    background: #fff;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .card label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .card input, .card select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #222;
+    background: #fafafa;
+    outline: none;
+    transition: border-color 0.18s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .card input:focus, .card select:focus {
+    border-color: #2D7A55;
+    background: #fff;
+  }
+
+  .card select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23999' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 17px;
+    background: linear-gradient(135deg, #2D7A55, #3da870);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-size: 17px;
+    font-weight: 800;
+    margin-top: 18px;
+    cursor: pointer;
+    letter-spacing: -0.3px;
+    box-shadow: 0 4px 16px rgba(45,122,85,0.35);
+    transition: transform 0.1s, box-shadow 0.1s;
+    font-family: inherit;
+  }
+
+  .submit-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(45,122,85,0.25);
+  }
+
+  .result-section { display: none; margin-top: 20px; }
+
+  .result-box {
+    padding: 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+  }
+
+  .result-box h3 {
+    font-size: 16px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .result-box p, .result-box li {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+  }
+
+  .result-box ul { padding-left: 18px; }
+  .result-box li { margin-bottom: 6px; }
+
+  .red   { color: #c0392b; font-weight: 700; }
+
+  .r-bmi   { background: #e8f5e9; border-left: 4px solid #2D7A55; }
+  .r-goal  { background: #ede7f6; border-left: 4px solid #7c4dff; }
+  .r-speed { background: #fff3e0; border-left: 4px solid #ff9800; }
+  .r-note  { background: #fce4ec; border-left: 4px solid #e91e63; }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .badge-normal { background: #c8e6c9; color: #1b5e20; }
+  .badge-over   { background: #fff9c4; color: #f57f17; }
+  .badge-obese1 { background: #ffe0b2; color: #e65100; }
+  .badge-obese2 { background: #ffcdd2; color: #b71c1c; }
+  .badge-under  { background: #e3f2fd; color: #0d47a1; }
+
+  /* ── BMI 게이지 ── */
+  .gauge-outer {
+    margin: 4px 0 16px;
+  }
+
+  .gauge-bar {
+    display: flex;
+    height: 24px;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.95);
+    letter-spacing: -0.3px;
+  }
+
+  .seg-under  { background: #64b5f6; width: 15%; }
+  .seg-normal { background: #43a047; width: 25%; }
+  .seg-over   { background: #ffd600; color: rgba(0,0,0,0.6); width: 15%; }
+  .seg-obese1 { background: #ff7043; width: 22%; }
+  .seg-obese2 { background: #e53935; width: 23%; }
+
+  /* 화살표 레이어 */
+  .gauge-arrow-row {
+    position: relative;
+    height: 36px;
+    margin-top: 0;
+  }
+
+  .gauge-arrow {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 13px solid #c0392b;
+  }
+
+  .arrow-label {
+    font-size: 12px;
+    font-weight: 900;
+    color: #c0392b;
+    white-space: nowrap;
+    margin-top: 1px;
+    background: #fff;
+    padding: 0 4px;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+
+  /* 구간 라벨 */
+  .gauge-ticks {
+    display: flex;
+    margin-top: 3px;
+  }
+
+  .gauge-ticks span {
+    font-size: 9px;
+    color: #aaa;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .gt-under  { width: 15%; }
+  .gt-normal { width: 25%; }
+  .gt-over   { width: 15%; }
+  .gt-obese1 { width: 22%; }
+  .gt-obese2 { width: 23%; }
+
+  /* 총감량치 박스 */
+  .loss-highlight {
+    background: #fff8e1;
+    border: 2px solid #ffa000;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 12px 0 6px;
+    text-align: center;
+  }
+
+  .loss-highlight .lh-label {
+    font-size: 12px;
+    color: #888;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: 0.3px;
+  }
+
+  .loss-highlight .lh-value {
+    font-size: 22px;
+    font-weight: 900;
+    color: #c0392b;
+    line-height: 1.2;
+  }
+
+  .loss-highlight .lh-weeks {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hospital">🏥 HJ매그놀리아 국제병원 산부인과</div>
+  <h1>⚖️ 체중 감량 속도 계산</h1>
+  <div class="subtitle">뇌새김 다이어트 클리닉</div>
+</header>
+
+<main>
+
+  <div class="intro-card">
+    <span class="red">"얼마나 빨리 빼느냐"</span>가 아니라<br>
+    <span class="red">"요요 없이 유지 가능한 속도"</span>를 계산합니다 😊
+  </div>
+
+  <div class="section-label">📋 기본 정보 입력</div>
+
+  <div class="card">
+    <label>키 (cm)</label>
+    <input id="height" type="number" placeholder="예) 163" inputmode="decimal">
+  </div>
+
+  <div class="card">
+    <label>체중 (kg)</label>
+    <input id="weight" type="number" placeholder="예) 72" inputmode="decimal">
+  </div>
+
+  <div class="card">
+    <label>나이</label>
+    <input id="age" type="number" placeholder="예) 45" inputmode="numeric">
+  </div>
+
+  <div class="card">
+    <label>호르몬 상태</label>
+    <select id="menopausal">
+      <option value="no">가임기 여성 (폐경 전)</option>
+      <option value="yes">폐경 후 여성</option>
+    </select>
+  </div>
+
+  <button class="submit-btn" onclick="calculate()">결과 보기 →</button>
+
+  <div class="result-section" id="result-section">
+    <div class="result-box r-bmi"   id="r-bmi"></div>
+    <div class="result-box r-goal"  id="r-goal"  style="display:none"></div>
+    <div class="result-box r-speed" id="r-speed" style="display:none"></div>
+    <div class="result-box r-note"  id="r-note"></div>
+  </div>
+
+</main>
+
+<script>
+// BMI → 게이지 left % 변환
+// 구간폭: 저체중(15%) 18.5 | 정상(25%) 23 | 과체중(15%) 25 | 비만1(22%) 30 | 비만2(23%)
+function bmiToLeft(bmi) {
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  if (bmi < 18.5) {
+    // 10 ~ 18.5 → 2 ~ 14
+    return clamp(2 + ((bmi - 10) / 8.5) * 12, 2, 14);
+  } else if (bmi < 23) {
+    // 18.5 ~ 23 → 15 ~ 39
+    return 15 + ((bmi - 18.5) / 4.5) * 24;
+  } else if (bmi < 25) {
+    // 23 ~ 25 → 40 ~ 54
+    return 40 + ((bmi - 23) / 2) * 14;
+  } else if (bmi < 30) {
+    // 25 ~ 30 → 55 ~ 76
+    return 55 + ((bmi - 25) / 5) * 21;
+  } else {
+    // 30 ~ 40 → 77 ~ 97
+    return clamp(77 + ((bmi - 30) / 10) * 20, 77, 97);
+  }
+}
+
+function buildGauge(bmi) {
+  const left = bmiToLeft(bmi).toFixed(1);
+  return `
+    <div class="gauge-outer">
+      <div class="gauge-bar">
+        <div class="seg seg-under">저체중</div>
+        <div class="seg seg-normal">정상</div>
+        <div class="seg seg-over">과체중</div>
+        <div class="seg seg-obese1">비만 1단계</div>
+        <div class="seg seg-obese2">비만 2단계</div>
+      </div>
+      <div class="gauge-arrow-row">
+        <div class="gauge-arrow" style="left:${left}%">
+          <div class="arrow-head"></div>
+          <div class="arrow-label">BMI ${bmi}</div>
+        </div>
+      </div>
+      <div class="gauge-ticks">
+        <span class="gt-under">~18.5</span>
+        <span class="gt-normal">18.5~23</span>
+        <span class="gt-over">23~25</span>
+        <span class="gt-obese1">25~30</span>
+        <span class="gt-obese2">30+</span>
+      </div>
+    </div>
+  `;
+}
+
+function calculate() {
+  const hCm = parseFloat(document.getElementById("height").value);
+  const w    = parseFloat(document.getElementById("weight").value);
+  const age  = parseInt(document.getElementById("age").value);
+  const meno = document.getElementById("menopausal").value;
+
+  if (!hCm || !w || !age || isNaN(w) || isNaN(age)) {
+    alert("모든 값을 정확히 입력해주세요.");
+    return;
+  }
+
+  const h   = hCm / 100;
+  const bmi = parseFloat((w / (h * h)).toFixed(1));
+
+  let category, badgeClass;
+  if      (bmi < 18.5)  { category = "저체중";    badgeClass = "badge-under";  }
+  else if (bmi <= 22.9) { category = "정상체중";   badgeClass = "badge-normal"; }
+  else if (bmi < 25)    { category = "과체중";    badgeClass = "badge-over";   }
+  else if (bmi < 30)    { category = "비만 1단계"; badgeClass = "badge-obese1"; }
+  else                  { category = "비만 2단계"; badgeClass = "badge-obese2"; }
+
+  const gauge      = buildGauge(bmi);
+  const commonNote = `<span class="red">※ 폐경이 지난 여성의 경우, 내장지방 관리를 위해 허리둘레 위주로 목표를 정하셔야 합니다.</span>`;
+
+  const bmiBox   = document.getElementById("r-bmi");
+  const goalBox  = document.getElementById("r-goal");
+  const speedBox = document.getElementById("r-speed");
+  const noteBox  = document.getElementById("r-note");
+
+  goalBox.style.display  = "none";
+  speedBox.style.display = "none";
+
+  // ── 저체중 ──
+  if (bmi < 18.5) {
+    bmiBox.innerHTML = `
+      <h3>📊 BMI 분석 결과</h3>
+      <span class="badge ${badgeClass}">BMI ${bmi} · ${category}</span>
+      ${gauge}
+      <p><span class="red">저체중(BMI 18.5 미만)은 단순한 마른 체형을 넘어,<br>
+      신체 유지를 위한 최소한의 영양과 에너지가 부족한 상태일 수 있습니다.</span><br><br>
+      비만 못지않게 다양한 건강 위험을 초래할 수 있습니다.</p>
+    `;
+    noteBox.innerHTML = `
+      <h3>🩺 권고사항</h3>
+      <p><span class="red">무리한 감량은 금물입니다.</span><br><br>
+      영양 균형과 근력 운동 중심으로 건강한 체중 증가를 고려하세요.<br><br>
+      ${commonNote}</p>
+    `;
+    showResult();
+    return;
+  }
+
+  // ── 정상체중 ──
+  if (category === "정상체중") {
+    bmiBox.innerHTML = `
+      <h3>📊 BMI 분석 결과</h3>
+      <span class="badge ${badgeClass}">BMI ${bmi} · ${category}</span>
+      ${gauge}
+      <p>BMI는 정상이지만, <span class="red">복부에 지방이 몰려 있다면 대사증후군 위험이 높아집니다.</span></p>
+    `;
+    noteBox.innerHTML = `
+      <h3>🩺 권고사항</h3>
+      <ul>
+        <li><span class="red">한국 성인 여성 허리둘레 기준: 85cm(약 33.5인치) 미만</span>을 유지하세요.</li>
+        <li>정제 탄수화물(당류, 흰 밀가루) 섭취를 줄여 인슐린 저항성을 예방하세요.</li>
+        <li><span class="red">복부 지방 축적 여부를 허리둘레로 꼭 확인하세요.</span></li>
+      </ul><br>
+      <p>${commonNote}</p>
+    `;
+    showResult();
+    return;
+  }
+
+  // ── 과체중 · 비만 ──
+  const stage1Min = parseFloat((w * 0.90).toFixed(1));
+  const stage1Max = parseFloat((w * 0.95).toFixed(1));
+  const tgtMin    = (20   * h * h).toFixed(1);
+  const tgtMax    = (22.9 * h * h).toFixed(1);
+
+  // 총 감량치 (5% = 적게, 10% = 많이)
+  const lossSmall = (w - stage1Max).toFixed(1);   // 5% 감량
+  const lossBig   = (w - stage1Min).toFixed(1);   // 10% 감량
+
+  // 주당 감량
+  const rateMin = meno === "yes" ? 0.003 : 0.005;
+  const rateMax = meno === "yes" ? 0.005 : 0.008;
+  const wkMin   = (w * rateMin).toFixed(2);
+  const wkMax   = (w * rateMax).toFixed(2);
+
+  // 예상 기간 (10% 기준 중간값)
+  const midLoss = (parseFloat(lossSmall) + parseFloat(lossBig)) / 2;
+  const midWk   = ((parseFloat(wkMin) + parseFloat(wkMax)) / 2);
+  const estWeeks = Math.round(midLoss / midWk);
+
+  const rateText = meno === "yes"
+    ? `체중의 <span class="red">0.3 ~ 0.5% / 주</span>`
+    : `체중의 <span class="red">0.5 ~ 0.8% / 주</span>`;
+
+  let extraMsg = "";
+  if (category === "과체중") {
+    extraMsg = `<p style="margin-top:8px;">👉 <span class="red">속도보다 유지가 더 중요합니다.</span></p>`;
+  } else if (category.includes("비만")) {
+    extraMsg = `<p style="margin-top:8px;">👉 <span class="red">초기 감량이 건강 개선에 매우 중요합니다.</span></p>`;
+  }
+  if (meno === "yes") {
+    extraMsg += `<p style="margin-top:6px;">👉 <span class="red">감량 속도보다 근육 유지가 핵심입니다.</span></p>`;
+  }
+
+  bmiBox.innerHTML = `
+    <h3>📊 BMI 분석 결과</h3>
+    <span class="badge ${badgeClass}">BMI ${bmi} · ${category}</span>
+    ${gauge}
+    ${extraMsg}
+  `;
+
+  goalBox.style.display = "block";
+  goalBox.innerHTML = `
+    <h3>🎯 첫 1단계 목표 체중 (5~10% 감량)</h3>
+    <p><span class="red">${stage1Max} kg ~ ${stage1Min} kg</span></p>
+    <br>
+    <p style="font-size:13px; color:#666;">📌 폐경 전 여성의 정상 체중 범위: ${tgtMin} ~ ${tgtMax} kg</p>
+  `;
+
+  speedBox.style.display = "block";
+  speedBox.innerHTML = `
+    <h3>📊 권장 감량 속도</h3>
+    <p>${rateText}</p>
+    <p style="font-size:13px; color:#888; margin-top:3px;">주당 약 ${wkMin} ~ ${wkMax} kg</p>
+
+    <div class="loss-highlight">
+      <div class="lh-label">🏁 1단계 총 감량 목표</div>
+      <div class="lh-value">${lossSmall} kg ~ ${lossBig} kg 감량</div>
+      <div class="lh-weeks">예상 소요 기간: 약 <b>${estWeeks}주</b></div>
+    </div>
+
+    <ul style="margin-top:10px;">
+      <li>1단계 목표 달성 후, 몸 상태를 보면서 다음 단계를 진행하세요.</li>
+      <li><span class="red">폐경 후 여성은 근육량 감소를 고려해 속도를 더 천천히 가져가세요.</span></li>
+    </ul>
+  `;
+
+  noteBox.innerHTML = `
+    <h3>⚠️ 주의사항</h3>
+    <p>${commonNote}</p>
+  `;
+
+  showResult();
+}
+
+function showResult() {
+  const section = document.getElementById("result-section");
+  section.style.display = "block";
+  setTimeout(() => section.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+}
+</script>
+
+</body>
+</html>
